@@ -128,5 +128,6 @@ class LabFlowAPITests(APITestCase):
         row = next(r for r in data["workload"] if r["user"]["username"] == "intern")
         self.assertEqual((row["open"], row["done"], row["overdue"]), (2, 1, 1))
         self.assertEqual(data["stats"]["overdue_tasks"], 1)
+        self.assertEqual(data["stats"]["done_this_week"], 1)
         self.assertEqual(len(data["velocity"]), 8)
         self.assertEqual(sum(w["count"] for w in data["velocity"]), 1)

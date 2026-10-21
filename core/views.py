@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.contrib.auth.models import User
 from django.db import connection, transaction
@@ -286,7 +286,10 @@ def dashboard(request):
                 "active_projects": Project.objects.filter(status=Project.Status.ACTIVE).count(),
                 "open_tasks": open_tasks.count(),
                 "overdue_tasks": open_tasks.filter(due_date__lt=today).count(),
-                "done_this_week": tasks.filter(completed_at__date__gte=week_start).count(),
+                # A datetime range rather than __date: MySQL's __date needs time-zone tables loaded.
+                "done_this_week": tasks.filter(
+                    completed_at__gte=timezone.make_aware(datetime.combine(week_start, time.min))
+                ).count(),
                 "my_open_tasks": open_tasks.filter(assignee=request.user).count(),
                 "papers_in_pipeline": Publication.objects.exclude(status=Publication.Status.PUBLISHED).count(),
             },
