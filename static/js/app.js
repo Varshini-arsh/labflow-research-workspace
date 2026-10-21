@@ -493,49 +493,93 @@ async function viewBoard(view, id) {
     if (add) taskForm({ project_id: project.id, status: add.dataset.addIn });
   });
 
-  // Drag and drop (HTML5). The drawer's status dropdown is the touch-friendly fallback.
-  let dragId = null;
+  // Drag and drop with pointer events (mouse, trackpad and pen). A press only becomes a drag
+  // after the pointer moves a few pixels, so a plain click still opens the task drawer.
+  // On touch screens the page scrolls instead; the drawer's status dropdown moves tasks there.
   const marker = Object.assign(document.createElement("div"), { className: "drop-marker" });
-  board.addEventListener("dragstart", (e) => {
-    const card = e.target.closest(".task-card");
-    if (!card) return;
-    dragId = Number(card.dataset.task);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(dragId));
-    requestAnimationFrame(() => card.classList.add("dragging"));
-  });
-  board.addEventListener("dragend", () => {
-    $$(".dragging", board).forEach((c) => c.classList.remove("dragging"));
-    $$(".column", board).forEach((c) => c.classList.remove("drag-over"));
-    marker.remove();
-  });
+  let drag = null;
+  let suppressClick = false;
+
   const dropIndex = (cards, y) => {
     const others = $$(".task-card:not(.dragging)", cards);
     const i = others.findIndex((c) => y < c.getBoundingClientRect().top + c.offsetHeight / 2);
     return { index: i < 0 ? others.length : i, before: others[i] };
   };
-  board.addEventListener("dragover", (e) => {
-    const col = e.target.closest(".column");
-    if (!col || dragId === null) return;
+  const columnAt = (x, y) => document.elementFromPoint(x, y)?.closest(".column");
+
+  board.addEventListener("pointerdown", (e) => {
+    const card = e.target.closest(".task-card");
+    if (!card || e.button !== 0 || e.pointerType === "touch") return;
+    drag = { card, id: Number(card.dataset.task), x: e.clientX, y: e.clientY, active: false, ghost: null };
+  });
+
+  document.addEventListener("pointermove", onDragMove);
+  document.addEventListener("pointerup", onDragEnd);
+  // The board is rebuilt on navigation; drop the document listeners with it.
+  const stop = () => {
+    document.removeEventListener("pointermove", onDragMove);
+    document.removeEventListener("pointerup", onDragEnd);
+    window.removeEventListener("hashchange", stop);
+  };
+  window.addEventListener("hashchange", stop);
+
+  function onDragMove(e) {
+    if (!drag) return;
+    if (!drag.active) {
+      if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
+      const task = tasks.find((t) => t.id === drag.id);
+      if (!task?.can_edit) { toast("You can only move tasks assigned to you.", "error"); drag = null; return; }
+      const rect = drag.card.getBoundingClientRect();
+      drag.offsetX = drag.x - rect.left;
+      drag.offsetY = drag.y - rect.top;
+      drag.ghost = drag.card.cloneNode(true);
+      drag.ghost.classList.add("drag-ghost");
+      drag.ghost.style.width = `${rect.width}px`;
+      document.body.append(drag.ghost);
+      drag.card.classList.add("dragging");
+      document.body.classList.add("is-dragging");
+      drag.active = true;
+    }
     e.preventDefault();
+    drag.ghost.style.transform = `translate(${e.clientX - drag.offsetX}px, ${e.clientY - drag.offsetY}px) rotate(2deg)`;
+
+    // Auto-scroll the board sideways near its edges (narrow screens show ~1.5 columns).
+    const bounds = board.getBoundingClientRect();
+    if (e.clientX > bounds.right - 40) board.scrollLeft += 12;
+    else if (e.clientX < bounds.left + 40) board.scrollLeft -= 12;
+
+    const col = columnAt(e.clientX, e.clientY);
     $$(".column", board).forEach((c) => c.classList.toggle("drag-over", c === col));
+    if (!col) { marker.remove(); return; }
     const cards = $(".cards", col);
     const { before } = dropIndex(cards, e.clientY);
     if (before) cards.insertBefore(marker, before); else cards.append(marker);
-  });
-  board.addEventListener("drop", async (e) => {
-    const col = e.target.closest(".column");
-    if (!col || dragId === null) return;
-    e.preventDefault();
-    const task = tasks.find((t) => t.id === dragId);
+  }
+
+  async function onDragEnd(e) {
+    if (!drag) return;
+    const { active, id, ghost } = drag;
+    drag = null;
+    if (!active) return; // plain click: let the click handler open the drawer
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 0);
+    ghost.remove();
+    document.body.classList.remove("is-dragging");
+    $$(".column", board).forEach((c) => c.classList.remove("drag-over"));
+    const col = columnAt(e.clientX, e.clientY);
+    marker.remove();
+    if (!col) { render(); return; }
+
+    const task = tasks.find((t) => t.id === id);
     const status = col.dataset.status;
     // Index among the *visible* cards; convert to an index in the full column.
     const { before } = dropIndex($(".cards", col), e.clientY);
-    const full = tasks.filter((t) => t.status === status && t.id !== dragId).sort((a, b) => a.position - b.position);
+    const full = tasks.filter((t) => t.status === status && t.id !== id).sort((a, b) => a.position - b.position);
     const index = before ? full.findIndex((t) => t.id === Number(before.dataset.task)) : full.length;
-    marker.remove();
-    dragId = null;
-    if (!task.can_edit) { toast("You can only move tasks assigned to you.", "error"); render(); return; }
+    if (status === task.status && index === tasks.filter((t) => t.status === status).sort((a, b) => a.position - b.position).indexOf(task)) {
+      render(); // dropped where it started
+      return;
+    }
     // Optimistic update, then confirm with the server.
     const prev = { status: task.status, position: task.position };
     full.splice(index, 0, task);
@@ -551,11 +595,16 @@ async function viewBoard(view, id) {
       render();
       toast(err.message, "error");
     }
-  });
+  }
+
+  // Swallow the click that follows a drag so the drawer doesn't open.
+  board.addEventListener("click", (e) => {
+    if (suppressClick) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
 }
 
 function taskCard(t) {
-  return `<article class="task-card" draggable="${t.can_edit}" data-task="${t.id}" tabindex="0" aria-label="${esc(t.title)}">
+  return `<article class="task-card ${t.can_edit ? "movable" : ""}" data-task="${t.id}" tabindex="0" aria-label="${esc(t.title)}">
     ${t.tag_list.length ? `<div class="tags">${t.tag_list.slice(0, 3).map((x) => `<span class="tag">${esc(x)}</span>`).join("")}</div>` : ""}
     <div class="t">${esc(t.title)}</div>
     <div class="row">${prio(t.priority, t.priority_label)}${dueLabel(t)}

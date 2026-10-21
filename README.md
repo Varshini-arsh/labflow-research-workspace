@@ -33,7 +33,7 @@ The demo data models a university research lab with 7 people (a Lab Admin, 3 Res
 |---|---|
 | Dashboard | 6 stat tiles that click through to filtered views, a weekly velocity bar chart, a status doughnut, a workload bar per person, upcoming deadlines and a project progress table |
 | Projects | Filter by status. Create or edit with a colour, lead, members and dates. Admins can delete |
-| Kanban board | Drag and drop between and within columns (optimistic UI that rolls back on error), filter by text, assignee and priority, add a task straight into a column |
+| Kanban board | Drag and drop between and within columns (pointer events with a floating card preview, auto-scroll at the board edges, optimistic UI that rolls back on error), filter by text, assignee and priority, add a task straight into a column. On touch screens, move a task from the task drawer |
 | Task drawer | Inline editing that saves on change, comments (Ctrl+Enter to send), overdue badge, read-only mode when you lack permission |
 | Tasks list | "Assigned to me" or "Everyone", status toggles, overdue-only, debounced search |
 | Publications | A 5-stage pipeline where one click advances a paper, plus an edit modal |
