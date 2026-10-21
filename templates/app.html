@@ -1,0 +1,45 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  {% include "head.html" %}
+  <title>LabFlow</title>
+</head>
+<body>
+{% csrf_token %}
+{% include "icons.html" %}
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark"><svg class="icon"><use href="#i-flask"/></svg></span>
+      <span>LabFlow<small>Research workspace</small></span>
+    </div>
+    <nav class="nav" id="nav">
+      <a href="#/dashboard" data-route="dashboard"><svg class="icon"><use href="#i-dashboard"/></svg>Dashboard</a>
+      <a href="#/projects" data-route="projects"><svg class="icon"><use href="#i-folder"/></svg>Projects</a>
+      <a href="#/my-tasks" data-route="my-tasks"><svg class="icon"><use href="#i-check"/></svg>My tasks<span class="count" id="my-count"></span></a>
+      <a href="#/publications" data-route="publications"><svg class="icon"><use href="#i-book"/></svg>Publications</a>
+      <a href="#/team" data-route="team"><svg class="icon"><use href="#i-users"/></svg>Team</a>
+      <a href="#/activity" data-route="activity"><svg class="icon"><use href="#i-activity"/></svg>Activity</a>
+      <div class="nav-label">Boards</div>
+      <div id="nav-projects"></div>
+    </nav>
+    <div class="sidebar-foot" id="me-box"></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="btn ghost icon-only menu-btn" id="menu-btn" aria-label="Open menu"><svg class="icon"><use href="#i-menu"/></svg></button>
+      <button class="search-trigger" id="search-btn"><svg class="icon"><use href="#i-search"/></svg>Search tasks, projects, people…<kbd>Ctrl K</kbd></button>
+      <div class="spacer"></div>
+      <button class="btn ghost icon-only" id="theme-btn" aria-label="Toggle dark mode"><svg class="icon"><use href="#i-moon"/></svg></button>
+      <button class="btn primary" id="quick-add"><svg class="icon"><use href="#i-plus"/></svg><span>New task</span></button>
+    </header>
+    <main class="content" id="view" aria-live="polite"></main>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>

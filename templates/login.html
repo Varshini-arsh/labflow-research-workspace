@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  {% include "head.html" %}
+  <title>Sign in · LabFlow</title>
+</head>
+<body>
+{% include "icons.html" %}
+<div class="auth">
+  <section class="auth-hero">
+    <div class="brand" style="padding:0;color:#fff">
+      <span class="brand-mark" style="background:rgba(255,255,255,.18)"><svg class="icon"><use href="#i-flask"/></svg></span>
+      <span>LabFlow</span>
+    </div>
+    <div>
+      <h1>Every project, task and paper in your lab, in one place.</h1>
+      <p>LabFlow is a research workspace for small lab teams: plan projects, run work on a Kanban board, track papers from idea to publication, and see who is overloaded before deadlines slip.</p>
+      <ul>
+        <li><svg class="icon"><use href="#i-kanban"/></svg> Drag-and-drop Kanban per project</li>
+        <li><svg class="icon"><use href="#i-dashboard"/></svg> Live dashboard: velocity, workload, deadlines</li>
+        <li><svg class="icon"><use href="#i-book"/></svg> Publication pipeline from idea to DOI</li>
+        <li><svg class="icon"><use href="#i-shield"/></svg> Role-based access: Admin, Researcher, Intern</li>
+      </ul>
+    </div>
+    <small style="opacity:.7">Django · Django REST Framework · MySQL · Vanilla JS</small>
+  </section>
+
+  <section class="auth-form">
+    <div class="box">
+      <h2>Welcome back</h2>
+      <p class="muted" style="margin:0 0 22px">Sign in to your lab workspace.</p>
+      {% if error %}<div class="alert-box" role="alert">{{ error }}</div>{% endif %}
+      <form method="post" style="width:100%">
+        {% csrf_token %}
+        <div class="field"><label for="u">Username</label><input class="input" id="u" name="username" autocomplete="username" required></div>
+        <div class="field"><label for="p">Password</label><input class="input" id="p" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn primary" style="width:100%;justify-content:center;padding:10px">Sign in</button>
+      </form>
+
+      {% if demo %}
+      <div class="divider">or explore with a demo account</div>
+      <div class="demo-buttons">
+        <form method="post" action="{% url 'demo-login' 'admin' %}">{% csrf_token %}
+          <button class="btn"><span class="avatar" style="background:#2a78d6">AI</span><span><b>Ananya Iyer</b><small>Lab Admin · full access</small></span></button>
+        </form>
+        <form method="post" action="{% url 'demo-login' 'researcher' %}">{% csrf_token %}
+          <button class="btn"><span class="avatar" style="background:#eb6834">RM</span><span><b>Rahul Menon</b><small>Researcher · leads Smart Grid project</small></span></button>
+        </form>
+        <form method="post" action="{% url 'demo-login' 'intern' %}">{% csrf_token %}
+          <button class="btn"><span class="avatar" style="background:#e87ba4">MN</span><span><b>Meera Nair</b><small>Intern · can edit only own tasks</small></span></button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
+</body>
+</html>
